@@ -18,11 +18,18 @@ Copilot: In Tokyo it's 75°F and sunny. Great day to be outside!
 
 Before you begin, make sure you have:
 
-- **GitHub Copilot CLI** installed and authenticated ([Installation guide](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli))
+- **GitHub CLI** installed ([Installation guide](https://cli.github.com/))
+- **GitHub Copilot CLI** extension installed ([Installation guide](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli))
 - Your preferred language runtime:
   - **Node.js** 18+ or **Python** 3.8+ or **Go** 1.21+ or **.NET** 8.0+
 
-Verify the CLI is working:
+Authenticate with GitHub (required before using the SDK):
+
+```bash
+gh auth login
+```
+
+Verify the Copilot CLI is working:
 
 ```bash
 copilot --version
@@ -535,7 +542,7 @@ import (
 
 // Define the parameter type
 type WeatherParams struct {
-	City string `json:"city" jsonschema:"The city name"`
+	City string `json:"city" jsonschema:"city name"`
 }
 
 // Define the return type
@@ -570,9 +577,10 @@ func main() {
 	defer client.Stop()
 
 	session, err := client.CreateSession(&copilot.SessionConfig{
-		Model:     "gpt-5-mini",
-		Streaming: true,
-		Tools:     []copilot.Tool{getWeather},
+		Model:          "gpt-5-mini",
+		Streaming:      true,
+		Tools:          []copilot.Tool{getWeather},
+		AvailableTools: []string{"get_weather"},
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -630,6 +638,7 @@ await using var session = await client.CreateSessionAsync(new SessionConfig
     Model = "gpt-5-mini",
     Streaming = true,
     Tools = [getWeather],
+    AvailableTools = ["get_weather"],
 });
 
 session.On(ev =>
@@ -687,6 +696,7 @@ const session = await client.createSession({
     model: "gpt-5-mini",
     streaming: true,
     tools: [getWeather],
+    availableTools: ["get_weather"],
 });
 
 session.on((event: SessionEvent) => {
@@ -761,6 +771,7 @@ async def main():
         "model": "gpt-5-mini",
         "streaming": True,
         "tools": [get_weather],
+        "available_tools": ["get_weather"],
     })
 
     def handle_event(event):
@@ -819,7 +830,7 @@ import (
 )
 
 type WeatherParams struct {
-	City string `json:"city" jsonschema:"description=The city name"`
+	City string `json:"city" jsonschema:"city name"`
 }
 
 type WeatherResult struct {
@@ -851,9 +862,10 @@ func main() {
 	defer client.Stop()
 
 	session, err := client.CreateSession(&copilot.SessionConfig{
-		Model:     "gpt-5-mini",
-		Streaming: true,
-		Tools:     []copilot.Tool{getWeather},
+		Model:          "gpt-5-mini",
+		Streaming:      true,
+		Tools:          []copilot.Tool{getWeather},
+		AvailableTools: []string{"get_weather"},
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -925,6 +937,7 @@ await using var session = await client.CreateSessionAsync(new SessionConfig
     Model = "gpt-5-mini",
     Streaming = true,
     Tools = [getWeather],
+    AvailableTools = ["get_weather"],
 });
 
 session.On(ev =>
