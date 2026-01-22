@@ -38,13 +38,13 @@ First, create a new directory and initialize your project:
 ```bash
 mkdir copilot-demo && cd copilot-demo
 npm init -y
+npm pkg set type=module
 ```
 
 Then install the SDK and TypeScript runner:
 
 ```bash
 npm install @github/copilot-sdk tsx
-```
 
 </details>
 
@@ -105,7 +105,7 @@ Create `index.ts`:
 import { CopilotClient } from "@github/copilot-sdk";
 
 const client = new CopilotClient();
-const session = await client.createSession({ model: "gpt-4.1" });
+const session = await client.createSession({ model: "gpt-5-mini" });
 
 const response = await session.sendAndWait({ prompt: "What is 2 + 2?" });
 console.log(response?.data.content);
@@ -135,7 +135,7 @@ async def main():
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-4.1"})
+    session = await client.create_session({"model": "gpt-5-mini"})
     response = await session.send_and_wait({"prompt": "What is 2 + 2?"})
 
     print(response.data.content)
@@ -176,7 +176,7 @@ func main() {
 	}
 	defer client.Stop()
 
-	session, err := client.CreateSession(&copilot.SessionConfig{Model: "gpt-4.1"})
+	session, err := client.CreateSession(&copilot.SessionConfig{Model: "gpt-5-mini"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -208,7 +208,7 @@ Create a new console project and add this to `Program.cs`:
 using GitHub.Copilot.SDK;
 
 await using var client = new CopilotClient();
-await using var session = await client.CreateSessionAsync(new SessionConfig { Model = "gpt-4.1" });
+await using var session = await client.CreateSessionAsync(new SessionConfig { Model = "gpt-5-mini" });
 
 var response = await session.SendAndWaitAsync(new MessageOptions { Prompt = "What is 2 + 2?" });
 Console.WriteLine(response?.Data.Content);
@@ -244,7 +244,7 @@ import { CopilotClient, SessionEvent } from "@github/copilot-sdk";
 
 const client = new CopilotClient();
 const session = await client.createSession({
-    model: "gpt-4.1",
+    model: "gpt-5-mini",
     streaming: true,
 });
 
@@ -255,13 +255,12 @@ session.on((event: SessionEvent) => {
     }
     if (event.type === "session.idle") {
         console.log(); // New line when done
+        client.stop();
     }
 });
 
-await session.sendAndWait({ prompt: "Tell me a short joke" });
-
-await client.stop();
-process.exit(0);
+// send() returns immediately - responses come through the event handler
+await session.send({ prompt: "Tell me a short joke" });
 ```
 
 </details>
@@ -282,9 +281,11 @@ async def main():
     await client.start()
 
     session = await client.create_session({
-        "model": "gpt-4.1",
+        "model": "gpt-5-mini",
         "streaming": True,
     })
+
+    done = asyncio.Event()
 
     # Listen for response chunks
     def handle_event(event):
@@ -293,10 +294,13 @@ async def main():
             sys.stdout.flush()
         if event.type == SessionEventType.SESSION_IDLE:
             print()  # New line when done
+            done.set()
 
     session.on(handle_event)
 
-    await session.send_and_wait({"prompt": "Tell me a short joke"})
+    # send() returns immediately - responses come through the event handler
+    await session.send({"prompt": "Tell me a short joke"})
+    await done.wait()
 
     await client.stop()
 
@@ -316,7 +320,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
 	copilot "github.com/github/copilot-sdk/go"
 )
@@ -329,12 +332,14 @@ func main() {
 	defer client.Stop()
 
 	session, err := client.CreateSession(&copilot.SessionConfig{
-		Model:     "gpt-4.1",
+		Model:     "gpt-5-mini",
 		Streaming: true,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	done := make(chan struct{})
 
 	// Listen for response chunks
 	session.On(func(event copilot.SessionEvent) {
@@ -343,14 +348,16 @@ func main() {
 		}
 		if event.Type == "session.idle" {
 			fmt.Println()
+			close(done)
 		}
 	})
 
-	_, err = session.SendAndWait(copilot.MessageOptions{Prompt: "Tell me a short joke"}, 0)
+	// Send() returns immediately - responses come through the event handler
+	_, err = session.Send(copilot.MessageOptions{Prompt: "Tell me a short joke"})
 	if err != nil {
 		log.Fatal(err)
 	}
-	os.Exit(0)
+	<-done
 }
 ```
 
@@ -367,9 +374,11 @@ using GitHub.Copilot.SDK;
 await using var client = new CopilotClient();
 await using var session = await client.CreateSessionAsync(new SessionConfig
 {
-    Model = "gpt-4.1",
+    Model = "gpt-5-mini",
     Streaming = true,
 });
+
+var done = new TaskCompletionSource();
 
 // Listen for response chunks
 session.On(ev =>
@@ -381,15 +390,20 @@ session.On(ev =>
     if (ev is SessionIdleEvent)
     {
         Console.WriteLine();
+        done.SetResult();
     }
 });
 
-await session.SendAndWaitAsync(new MessageOptions { Prompt = "Tell me a short joke" });
+// SendAsync() returns immediately - responses come through the event handler
+await session.SendAsync(new MessageOptions { Prompt = "Tell me a short joke" });
+await done.Task;
 ```
 
 </details>
 
 Run the code again. You'll see the response appear word by word.
+
+> **`send` vs `sendAndWait`**: The `send` method returns immediately after sending the message, letting you handle the response entirely through events. Use `sendAndWait` (from Step 2) when you want to block until the response is complete—it's a convenience wrapper that waits for the `session.idle` event.
 
 ## Step 4: Add a Custom Tool
 
@@ -425,7 +439,7 @@ const getWeather = defineTool("get_weather", {
 
 const client = new CopilotClient();
 const session = await client.createSession({
-    model: "gpt-4.1",
+    model: "gpt-5-mini",
     streaming: true,
     tools: [getWeather],
 });
@@ -455,26 +469,29 @@ Update `main.py`:
 import asyncio
 import random
 import sys
-from copilot import CopilotClient
-from copilot.tools import define_tool
+from pydantic import BaseModel, Field
+from copilot import CopilotClient, define_tool
 from copilot.generated.session_events import SessionEventType
+
+# Define the parameters using Pydantic
+class WeatherParams(BaseModel):
+    city: str = Field(description="The city name")
 
 # Define a tool that Copilot can call
 @define_tool(description="Get the current weather for a city")
-async def get_weather(params: dict) -> dict:
-    city = params["city"]
+def get_weather(params: WeatherParams) -> dict:
     # In a real app, you'd call a weather API here
     conditions = ["sunny", "cloudy", "rainy", "partly cloudy"]
     temp = random.randint(50, 80)
     condition = random.choice(conditions)
-    return {"city": city, "temperature": f"{temp}°F", "condition": condition}
+    return {"city": params.city, "temperature": f"{temp}°F", "condition": condition}
 
 async def main():
     client = CopilotClient()
     await client.start()
 
     session = await client.create_session({
-        "model": "gpt-4.1",
+        "model": "gpt-5-mini",
         "streaming": True,
         "tools": [get_weather],
     })
@@ -553,7 +570,7 @@ func main() {
 	defer client.Stop()
 
 	session, err := client.CreateSession(&copilot.SessionConfig{
-		Model:     "gpt-4.1",
+		Model:     "gpt-5-mini",
 		Streaming: true,
 		Tools:     []copilot.Tool{getWeather},
 	})
@@ -610,7 +627,7 @@ var getWeather = AIFunctionFactory.Create(
 
 await using var session = await client.CreateSessionAsync(new SessionConfig
 {
-    Model = "gpt-4.1",
+    Model = "gpt-5-mini",
     Streaming = true,
     Tools = [getWeather],
 });
@@ -657,7 +674,7 @@ const getWeather = defineTool("get_weather", {
         },
         required: ["city"],
     },
-    handler: async ({ city }) => {
+    handler: async ({ city }: { city: string }) => {
         const conditions = ["sunny", "cloudy", "rainy", "partly cloudy"];
         const temp = Math.floor(Math.random() * 30) + 50;
         const condition = conditions[Math.floor(Math.random() * conditions.length)];
@@ -667,7 +684,7 @@ const getWeather = defineTool("get_weather", {
 
 const client = new CopilotClient();
 const session = await client.createSession({
-    model: "gpt-4.1",
+    model: "gpt-5-mini",
     streaming: true,
     tools: [getWeather],
 });
@@ -721,24 +738,27 @@ Create `weather_assistant.py`:
 import asyncio
 import random
 import sys
-from copilot import CopilotClient
-from copilot.tools import define_tool
+from pydantic import BaseModel, Field
+from copilot import CopilotClient, define_tool
 from copilot.generated.session_events import SessionEventType
 
+# Define the parameters using Pydantic
+class WeatherParams(BaseModel):
+    city: str = Field(description="The city name")
+
 @define_tool(description="Get the current weather for a city")
-async def get_weather(params: dict) -> dict:
-    city = params["city"]
+def get_weather(params: WeatherParams) -> dict:
     conditions = ["sunny", "cloudy", "rainy", "partly cloudy"]
     temp = random.randint(50, 80)
     condition = random.choice(conditions)
-    return {"city": city, "temperature": f"{temp}°F", "condition": condition}
+    return {"city": params.city, "temperature": f"{temp}°F", "condition": condition}
 
 async def main():
     client = CopilotClient()
     await client.start()
 
     session = await client.create_session({
-        "model": "gpt-4.1",
+        "model": "gpt-5-mini",
         "streaming": True,
         "tools": [get_weather],
     })
@@ -775,6 +795,167 @@ Run with:
 
 ```bash
 python weather_assistant.py
+```
+
+</details>
+
+<details>
+<summary><strong>Go</strong></summary>
+
+Create `main.go`:
+
+```go
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"log"
+	"math/rand"
+	"os"
+	"strings"
+
+	copilot "github.com/github/copilot-sdk/go"
+)
+
+type WeatherParams struct {
+	City string `json:"city" jsonschema:"description=The city name"`
+}
+
+type WeatherResult struct {
+	City        string `json:"city"`
+	Temperature string `json:"temperature"`
+	Condition   string `json:"condition"`
+}
+
+func main() {
+	getWeather := copilot.DefineTool(
+		"get_weather",
+		"Get the current weather for a city",
+		func(params WeatherParams, inv copilot.ToolInvocation) (WeatherResult, error) {
+			conditions := []string{"sunny", "cloudy", "rainy", "partly cloudy"}
+			temp := rand.Intn(30) + 50
+			condition := conditions[rand.Intn(len(conditions))]
+			return WeatherResult{
+				City:        params.City,
+				Temperature: fmt.Sprintf("%d°F", temp),
+				Condition:   condition,
+			}, nil
+		},
+	)
+
+	client := copilot.NewClient(nil)
+	if err := client.Start(); err != nil {
+		log.Fatal(err)
+	}
+	defer client.Stop()
+
+	session, err := client.CreateSession(&copilot.SessionConfig{
+		Model:     "gpt-5-mini",
+		Streaming: true,
+		Tools:     []copilot.Tool{getWeather},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	session.On(func(event copilot.SessionEvent) {
+		if event.Type == "assistant.message_delta" {
+			fmt.Print(*event.Data.DeltaContent)
+		}
+	})
+
+	fmt.Println("🌤️  Weather Assistant (type 'exit' to quit)")
+	fmt.Println("   Try: 'What's the weather in Paris?'\n")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("You: ")
+		if !scanner.Scan() {
+			break
+		}
+		input := scanner.Text()
+		if strings.ToLower(input) == "exit" {
+			break
+		}
+		fmt.Print("Assistant: ")
+		_, err := session.SendAndWait(copilot.MessageOptions{Prompt: input}, 0)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("\n")
+	}
+}
+```
+
+Run with:
+
+```bash
+go run main.go
+```
+
+</details>
+
+<details>
+<summary><strong>.NET</strong></summary>
+
+Update `Program.cs`:
+
+```csharp
+using GitHub.Copilot.SDK;
+using Microsoft.Extensions.AI;
+using System.ComponentModel;
+
+await using var client = new CopilotClient();
+
+var getWeather = AIFunctionFactory.Create(
+    ([Description("The city name")] string city) =>
+    {
+        var conditions = new[] { "sunny", "cloudy", "rainy", "partly cloudy" };
+        var temp = Random.Shared.Next(50, 80);
+        var condition = conditions[Random.Shared.Next(conditions.Length)];
+        return new { city, temperature = $"{temp}°F", condition };
+    },
+    "get_weather",
+    "Get the current weather for a city"
+);
+
+await using var session = await client.CreateSessionAsync(new SessionConfig
+{
+    Model = "gpt-5-mini",
+    Streaming = true,
+    Tools = [getWeather],
+});
+
+session.On(ev =>
+{
+    if (ev is AssistantMessageDeltaEvent deltaEvent)
+    {
+        Console.Write(deltaEvent.Data.DeltaContent);
+    }
+});
+
+Console.WriteLine("🌤️  Weather Assistant (type 'exit' to quit)");
+Console.WriteLine("   Try: 'What's the weather in Paris?'\n");
+
+while (true)
+{
+    Console.Write("You: ");
+    var input = Console.ReadLine();
+    if (string.IsNullOrEmpty(input) || input.Equals("exit", StringComparison.OrdinalIgnoreCase))
+    {
+        break;
+    }
+    Console.Write("Assistant: ");
+    await session.SendAndWaitAsync(new MessageOptions { Prompt = input });
+    Console.WriteLine("\n");
+}
+```
+
+Run with:
+
+```bash
+dotnet run
 ```
 
 </details>
