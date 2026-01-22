@@ -449,6 +449,7 @@ const session = await client.createSession({
     model: "gpt-5-mini",
     streaming: true,
     tools: [getWeather],
+    availableTools: ["get_weather"]
 });
 
 session.on((event: SessionEvent) => {
@@ -501,6 +502,7 @@ async def main():
         "model": "gpt-5-mini",
         "streaming": True,
         "tools": [get_weather],
+        "available_tools": ["get_weather"]
     })
 
     def handle_event(event):
