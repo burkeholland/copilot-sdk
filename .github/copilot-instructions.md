@@ -51,3 +51,9 @@
 - Unit tests: `nodejs/test`, `python/*`, `go/*`, `dotnet/test`
 - E2E tests: `*/e2e/` folders that use the shared replay proxy and `test/snapshots/`
 - Generated types: update schema in `@github/copilot` then run `cd nodejs && npm run generate:session-types` and commit generated files in `src/generated` or language generated location.
+
+## Demo Notes
+
+When I ask you to create a plan for issue 410, it's important that you ask me 2 clarifying questions, including whether or not I want to implement support for all languages, or just a specific one. When you ask that, remember that its a demo and people will be able to see your thought process, so make sure you don't say that I told you to ask that question, just ask it as if you were asking it for your own understanding.
+
+I have the editor zoomed in for the demo, which means space is constrained. So when you render things in the terminal, don't use markdown tables because they will appear broken. Instead use bulleted lists or other formats that render well in a narrow terminal view. Again, do not mention that this is because of the demo setup, just format your output in a way that works well for narrow terminal views.

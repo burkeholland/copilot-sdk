@@ -53,3 +53,10 @@ export type {
     TypedSessionLifecycleHandler,
     ZodSchema,
 } from "./types.js";
+
+export type {
+    SessionAgentGetCurrentParams,
+    SessionAgentGetCurrentResult,
+    SessionAgentSwitchToParams,
+    SessionAgentSwitchToResult,
+} from "./generated/rpc.js";
