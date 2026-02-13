@@ -175,6 +175,31 @@ export interface SessionModelSwitchToParams {
   modelId: string;
 }
 
+export interface SessionAgentGetCurrentResult {
+  agentName?: string;
+  agentDisplayName?: string;
+}
+
+export interface SessionAgentGetCurrentParams {
+  /**
+   * Target session identifier
+   */
+  sessionId: string;
+}
+
+export interface SessionAgentSwitchToResult {
+  agentName?: string;
+  agentDisplayName?: string;
+}
+
+export interface SessionAgentSwitchToParams {
+  /**
+   * Target session identifier
+   */
+  sessionId: string;
+  agentName: string;
+}
+
 /** Create typed server-scoped RPC methods (no session required). */
 export function createServerRpc(connection: MessageConnection) {
     return {
@@ -203,6 +228,12 @@ export function createSessionRpc(connection: MessageConnection, sessionId: strin
                 connection.sendRequest("session.model.getCurrent", { sessionId }),
             switchTo: async (params: Omit<SessionModelSwitchToParams, "sessionId">): Promise<SessionModelSwitchToResult> =>
                 connection.sendRequest("session.model.switchTo", { sessionId, ...params }),
+        },
+        agent: {
+            getCurrent: async (): Promise<SessionAgentGetCurrentResult> =>
+                connection.sendRequest("session.agent.getCurrent", { sessionId }),
+            switchTo: async (params: Omit<SessionAgentSwitchToParams, "sessionId">): Promise<SessionAgentSwitchToResult> =>
+                connection.sendRequest("session.agent.switchTo", { sessionId, ...params }),
         },
     };
 }
